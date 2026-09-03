@@ -234,6 +234,7 @@ const ICONS={
   check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   x:'<path d="M6 6l12 12M18 6L6 18"/>',
   left:'<path d="M15 5l-7 7 7 7"/>',
+  right:'<path d="M9 5l7 7-7 7"/>',
   crown:'<path d="M3 18l1.2-11 5.3 5 2.5-7 2.5 7 5.3-5L21 18z"/><path d="M4 21h16"/>',
   bolt:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
   play:'<path d="M7 4l13 8-13 8z"/>',
@@ -717,16 +718,16 @@ function Lesson({journey,onExit,onDone}){
     h('div',{className:'lhead'},
       h('button',{className:'btn ghost icon',onClick:onExit,'aria-label':'Back to journeys'},Icon('x',20,{strokeWidth:3})),
       h('div',{className:'prog'},h('i',{style:{width:`${((idx+1)/n)*100}%`}})),
-      h('div',{className:'stepchip'},`${idx+1} / ${n}`)),
+      h('div',{className:'stepchip'},`${idx+1} / ${n}`),
+      h('div',{className:'ctl'},
+        h('button',{className:'btn ghost sm',onClick:prev,disabled:idx===0,'aria-label':'Back'},Icon('left',15,{strokeWidth:3})),
+        h('button',{className:'btn sm',onClick:next,'aria-label':idx===n-1?'Finish':'Next'},idx===n-1?'Finish':'Next',idx===n-1?Icon('crown',15):Icon('right',15,{strokeWidth:3})))),
     h('div',{className:'lbody'},h(Stage,{journey,stepIdx:idx}),h(Inspector,{step,journey})),
     h('div',{className:'lfoot'},h('div',{className:'lfoot-in'},
       h('div',{className:'caption',key:idx},
         h('div',{className:'eyebrow'},h('i'),journey.title,' · step ',idx+1),
         h('h2',null,step.title),
-        h('p',{dangerouslySetInnerHTML:{__html:MD(step.text)}})),
-      h('div',{className:'ctl'},
-        h('button',{className:'btn ghost',onClick:prev,disabled:idx===0},Icon('left',18,{strokeWidth:3}),'Back'),
-        h('button',{className:'btn',onClick:next},idx===n-1?'Finish':'Next',idx===n-1?Icon('crown',18):null)))));
+        h('p',{dangerouslySetInnerHTML:{__html:MD(step.text)}})))));
 }
 
 function confetti(canvas){
