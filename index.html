@@ -147,7 +147,11 @@ svg{display:block}
 .chip.dropped{background:var(--red)}
 
 /* inspector */
-.insp{border:2px solid var(--border);border-radius:22px;background:var(--card);padding:16px;display:flex;flex-direction:column;gap:12px;align-self:start;min-height:200px}
+.insp{border:2px solid var(--border);border-radius:22px;background:var(--card);padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto}
+.insp-cap{padding-bottom:14px;border-bottom:2px solid var(--border);animation:rise .4s cubic-bezier(.22,1,.36,1) backwards}
+.insp-cap h2{font-size:18px;font-weight:900;letter-spacing:-.01em;line-height:1.25;text-wrap:balance}
+.insp-cap p{margin:6px 0 0;font-size:13.5px;color:var(--muted);line-height:1.55}
+.insp-cap p b{color:var(--text)}
 .insp-title{display:flex;align-items:center;gap:8px;font-weight:900;font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
 .insp-title .dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px var(--green-soft)}
 .insp h4{margin:0;font-size:17px;font-weight:900;letter-spacing:-.01em}
@@ -170,17 +174,9 @@ pre.payload{margin:0;padding:10px 12px;border-radius:12px;background:var(--code-
 .checks li{list-style:none;display:flex;gap:10px;align-items:flex-start;font-size:13.5px}
 .checks .ck{width:22px;height:22px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;flex:none}
 
-/* footer */
-.lfoot{flex:none;border-top:2px solid var(--border);background:var(--surface);padding:16px 24px}
-.lfoot-in{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:22px;justify-content:space-between}
-.caption{flex:1;min-width:0;animation:rise .4s cubic-bezier(.22,1,.36,1) backwards}
 .eyebrow{font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--c-d);display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .eyebrow i{width:8px;height:8px;border-radius:50%;background:var(--c);display:inline-block}
-.caption h2{font-size:21px;font-weight:900;letter-spacing:-.015em;line-height:1.15}
-.caption p{margin:6px 0 0;font-size:15px;color:var(--muted);max-width:78ch}
-.caption p b{color:var(--text)}
 .ctl{display:flex;gap:12px;flex:none}
-@media (max-width:700px){.lfoot-in{flex-direction:column;align-items:stretch}.ctl{justify-content:flex-end}}
 
 /* done */
 .done{min-height:100vh;min-height:100dvh;display:grid;place-items:center;position:relative;overflow:hidden;padding:24px}
@@ -200,7 +196,7 @@ pre.payload{margin:0;padding:10px 12px;border-radius:12px;background:var(--code-
 @keyframes shake{0%,100%{translate:0}20%{translate:-6px}40%{translate:6px}60%{translate:-4px}80%{translate:4px}}
 @keyframes bounce{0%{transform:scale(0) rotate(-20deg)}60%{transform:scale(1.15) rotate(6deg)}100%{transform:none}}
 @media (prefers-reduced-motion: reduce){
-  .rec,.badge,.note,.dbrow,.insp-sec,.caption,.done-card,.trophy{animation:none}
+  .rec,.badge,.note,.dbrow,.insp-sec,.insp-cap,.done-card,.trophy{animation:none}
   .st-error{animation:none}
 }
 </style>
@@ -655,8 +651,11 @@ function Stage({journey,stepIdx}){
       const h=body.clientHeight;
       setScale(Math.max(.3,Math.min(w/1000,Math.max(h-8,300)/520)));
     };
-    const ro=new ResizeObserver(fit);ro.observe(body);fit();
-    return()=>ro.disconnect();
+    const ro=new ResizeObserver(fit);ro.observe(body);
+    window.addEventListener('resize',fit);
+    window.addEventListener('orientationchange',fit);
+    fit();
+    return()=>{ro.disconnect();window.removeEventListener('resize',fit);window.removeEventListener('orientationchange',fit);};
   },[]);
   useEffect(()=>{
     const layer=layerRef.current;layer.innerHTML='';
@@ -688,9 +687,13 @@ function Stage({journey,stepIdx}){
 function fmtJSON(o){
   return JSON.stringify(o,null,2).replace(/"([^"]+)":/g,'<span class="pl-k">"$1"</span>:').replace(/: "([^"]*)"/g,': <span class="pl-s">"$1"</span>').replace(/: (-?\d[\d.]*)/g,': <span class="pl-n">$1</span>');
 }
-function Inspector({step,journey}){
+function Inspector({step,journey,idx}){
   const ins=step.inspect;
-  return h('aside',{className:'insp',key:journey.id+':'+step.title},
+  return h('aside',{className:'insp'},
+    h('div',{className:'insp-cap',key:'cap'+idx},
+      h('div',{className:'eyebrow'},h('i'),journey.title,' · step ',idx+1),
+      h('h2',null,step.title),
+      h('p',{dangerouslySetInnerHTML:{__html:MD(step.text)}})),
     h('div',{className:'insp-title'},h('span',{className:'dot'}),ins?'Inspector':'Inspector'),
     ins?[
       h('h4',{key:'t'},ins.title),
@@ -700,7 +703,7 @@ function Inspector({step,journey}){
       ins.payload&&h('div',{key:'p',className:'insp-sec'},h('div',{className:'insp-lab'},'Payload'),h('pre',{className:'payload',dangerouslySetInnerHTML:{__html:fmtJSON(ins.payload)}})),
       ins.checks&&h('div',{key:'c',className:'insp-sec'},h('ul',{className:'checks'},...ins.checks.map((t,i)=>h('li',{key:i},h('span',{className:'ck'},Icon('check',13,{strokeWidth:3})),h('span',null,t))))),
       ins.note&&h('div',{key:'n',className:'insp-sec'},h('div',{className:'insp-note'},ins.note)),
-    ]:h('p',{style:{margin:0,color:'var(--muted)',fontSize:14}},'Watch the stage — the message chips carry the key and the interesting header for this step.'));
+    ]:h('p',{key:'e',style:{margin:0,color:'var(--muted)',fontSize:14}},'Watch the stage — the message chips carry the key and the interesting header for this step.'));
 }
 
 function RotateHint({dismissed,onDismiss}){
@@ -728,12 +731,7 @@ function Lesson({journey,onExit,onDone}){
       h('div',{className:'ctl'},
         h('button',{className:'btn ghost sm',onClick:prev,disabled:idx===0,'aria-label':'Back'},Icon('left',15,{strokeWidth:3})),
         h('button',{className:'btn sm',onClick:next,'aria-label':idx===n-1?'Finish':'Next'},idx===n-1?'Finish':'Next',idx===n-1?Icon('crown',15):Icon('right',15,{strokeWidth:3})))),
-    h('div',{className:'lbody'},h(Stage,{journey,stepIdx:idx}),h(Inspector,{step,journey})),
-    h('div',{className:'lfoot'},h('div',{className:'lfoot-in'},
-      h('div',{className:'caption',key:idx},
-        h('div',{className:'eyebrow'},h('i'),journey.title,' · step ',idx+1),
-        h('h2',null,step.title),
-        h('p',{dangerouslySetInnerHTML:{__html:MD(step.text)}})))));
+    h('div',{className:'lbody'},h(Stage,{journey,stepIdx:idx}),h(Inspector,{step,journey,idx})));
 }
 
 function confetti(canvas){
