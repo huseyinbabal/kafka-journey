@@ -1,0 +1,763 @@
+<meta charset="utf-8">
+<title>Kafka Journey</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+:root{
+  --bg:#ffffff; --surface:#f7f7f7; --card:#ffffff; --border:#e5e5e5; --border2:#cfcfcf;
+  --text:#4b4b4b; --muted:#777777; --faint:#afafaf;
+  --green:#58cc02; --green-d:#46a302; --green-soft:#d7ffb8;
+  --blue:#1cb0f6; --blue-d:#1899d6; --blue-soft:#ddf4ff;
+  --orange:#ff9600; --orange-d:#e58900; --orange-soft:#ffe5c2;
+  --red:#ff4b4b; --red-d:#ea2b2b; --red-soft:#ffdfe0;
+  --purple:#ce82ff; --purple-d:#a560e8; --purple-soft:#f0e0ff;
+  --yellow:#ffc800; --yellow-d:#e5a800; --yellow-soft:#fff2b8;
+  --code-bg:#f0f4f7; --stage:#fbfbfb; --dot:#e6e6e6;
+  --shadow:rgba(0,0,0,.14);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#131f24; --surface:#1a272e; --card:#202f36; --border:#37464f; --border2:#4a5c67;
+    --text:#f1f7fb; --muted:#c3d0d8; --faint:#7f909a;
+    --green-soft:#2a4a14; --blue-soft:#163a4d; --orange-soft:#4a3210; --red-soft:#4d1e1e; --purple-soft:#3a2550; --yellow-soft:#4a3d0a;
+    --code-bg:#0f1a1f; --stage:#172329; --dot:#26353c; --shadow:rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#131f24; --surface:#1a272e; --card:#202f36; --border:#37464f; --border2:#4a5c67;
+  --text:#f1f7fb; --muted:#c3d0d8; --faint:#7f909a;
+  --green-soft:#2a4a14; --blue-soft:#163a4d; --orange-soft:#4a3210; --red-soft:#4d1e1e; --purple-soft:#3a2550; --yellow-soft:#4a3d0a;
+  --code-bg:#0f1a1f; --stage:#172329; --dot:#26353c; --shadow:rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;font-weight:600;font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+code,.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+code{background:var(--code-bg);padding:1px 6px;border-radius:6px;font-size:.88em;font-weight:700}
+b{font-weight:900}
+button{font:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+h1,h2,h3{text-wrap:balance;margin:0}
+svg{display:block}
+
+/* chunky buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:16px;padding:0 26px;height:50px;background:var(--green);color:#fff;font-weight:900;font-size:15px;letter-spacing:.09em;text-transform:uppercase;box-shadow:0 4px 0 var(--green-d);transition:transform .08s,box-shadow .08s,filter .15s;user-select:none}
+.btn:hover{filter:brightness(1.06)}
+.btn:active{transform:translateY(4px);box-shadow:0 0 0 var(--green-d)}
+.btn.blue{background:var(--blue);box-shadow:0 4px 0 var(--blue-d)}.btn.blue:active{box-shadow:none}
+.btn.ghost{background:var(--card);color:var(--blue);border:2px solid var(--border);box-shadow:0 4px 0 var(--border)}
+.btn.ghost:active{box-shadow:none}
+.btn.ghost:disabled{color:var(--faint);cursor:not-allowed;filter:none;transform:none;box-shadow:0 4px 0 var(--border)}
+.btn.sm{height:42px;padding:0 18px;font-size:13px;border-radius:14px}
+.btn.icon{width:44px;height:44px;padding:0;border-radius:14px}
+
+/* ---------- home ---------- */
+.home{max-width:1100px;margin:0 auto;padding:24px 24px 64px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:20px;border-bottom:2px solid var(--border)}
+.brand{display:flex;align-items:center;gap:12px;font-size:22px;font-weight:900;letter-spacing:-.01em}
+.brand-mark{width:40px;height:40px;border-radius:13px;background:var(--green);color:#fff;display:grid;place-items:center;box-shadow:0 3px 0 var(--green-d)}
+.stats{display:flex;gap:10px}
+.stat{display:flex;align-items:center;gap:7px;font-weight:900;font-size:15px;padding:8px 12px;border-radius:12px;border:2px solid var(--border);background:var(--card)}
+.stat.crown{color:var(--yellow-d)}.stat.xp{color:var(--blue-d)}
+.hero{padding:36px 0 22px}
+.hero h1{font-size:34px;font-weight:900;letter-spacing:-.02em;line-height:1.1}
+.hero p{margin:10px 0 0;color:var(--muted);font-size:17px;max-width:60ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:20px}
+.jcard{position:relative;display:flex;flex-direction:column;background:var(--card);border:2px solid var(--border);border-bottom-width:5px;border-radius:22px;overflow:hidden;transition:transform .15s,border-color .15s;text-align:left;padding:0;color:inherit}
+.jcard:hover{transform:translateY(-3px);border-color:var(--c)}
+.jcard-band{height:110px;background:var(--c-soft);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.jcard-band .big{width:64px;height:64px;border-radius:20px;background:var(--c);color:#fff;display:grid;place-items:center;box-shadow:0 5px 0 var(--c-d);transition:transform .2s}
+.jcard:hover .big{transform:scale(1.08) rotate(-4deg)}
+.jcard-band .ring{position:absolute;border-radius:50%;border:3px solid var(--c);opacity:.18}
+.jcard-body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:8px;flex:1}
+.jcard h3{font-size:19px;font-weight:900;letter-spacing:-.01em}
+.jcard p{margin:0;color:var(--muted);font-size:14px;line-height:1.45;flex:1}
+.jcard-meta{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.jcard-cta{font-weight:900;color:var(--c-d);letter-spacing:.09em;display:inline-flex;align-items:center;gap:6px}
+.done-pill{position:absolute;top:12px;right:12px;background:var(--yellow);color:#5b4300;border-radius:999px;padding:5px 10px 5px 8px;font-size:11px;font-weight:900;letter-spacing:.08em;display:flex;gap:5px;align-items:center;box-shadow:0 3px 0 var(--yellow-d)}
+.legend{margin-top:40px;padding:18px 20px;border:2px dashed var(--border);border-radius:18px;color:var(--muted);font-size:14px;display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+.legend .k{display:inline-flex;align-items:center;gap:6px;font-weight:800}
+
+/* ---------- lesson ---------- */
+.lesson{display:flex;flex-direction:column;min-height:100vh}
+.lhead{display:flex;align-items:center;gap:18px;padding:18px 24px 10px;width:100%;max-width:1400px;margin:0 auto}
+.prog{flex:1;height:16px;background:var(--border);border-radius:8px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--green);border-radius:8px;position:relative;transition:width .45s cubic-bezier(.22,1,.36,1)}
+.prog i::after{content:"";position:absolute;left:8px;right:8px;top:4px;height:4px;border-radius:2px;background:rgba(255,255,255,.35)}
+.stepchip{font-weight:900;font-size:13px;letter-spacing:.08em;color:var(--faint);min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.lbody{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;padding:6px 24px 22px;width:100%;max-width:1400px;margin:0 auto}
+@media (max-width:960px){.lbody{grid-template-columns:1fr}}
+
+.stagecol{min-width:0}
+.stagewrap{position:relative;margin:0 auto;max-width:100%;border:2px solid var(--border);border-radius:22px;background:var(--stage);background-image:radial-gradient(var(--dot) 1.4px,transparent 1.4px);background-size:22px 22px;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:1000px;height:520px;transform-origin:0 0}
+.edges{position:absolute;inset:0;width:1000px;height:520px;overflow:visible}
+.edge{fill:none;stroke:var(--border2);stroke-width:3;stroke-linecap:round;transition:stroke .25s}
+.edge.dashed{stroke-dasharray:8 8}
+.edge.active{stroke:var(--c);stroke-width:4}
+.arrow{fill:var(--border2);transition:fill .25s}.arrow.active{fill:var(--c)}
+.layer{position:absolute;inset:0;pointer-events:none}
+
+.node{position:absolute;display:flex;flex-direction:column;gap:6px;padding:11px 13px;background:var(--card);border:2px solid var(--border);border-bottom-width:5px;border-radius:18px;transition:border-color .25s,box-shadow .25s;will-change:transform,opacity}
+.node.focus{border-color:var(--c);box-shadow:0 0 0 5px var(--c-soft)}
+.node-head{display:flex;align-items:center;gap:10px;min-width:0}
+.node-ic{width:36px;height:36px;border-radius:12px;background:var(--c);color:#fff;display:grid;place-items:center;flex:none;transition:background .25s}
+.node-title{font-weight:900;font-size:15.5px;line-height:1.1;letter-spacing:-.01em;white-space:nowrap}
+.node-sub{font-size:11.5px;color:var(--muted);font-weight:700;margin-top:2px;white-space:nowrap}
+.k-coord{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;border-radius:999px;border-bottom-width:4px}
+.k-coord .node-ic{width:30px;height:30px;border-radius:50%}
+.k-coord .badge{align-self:center}
+.badge{align-self:flex-start;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:10.5px;line-height:1;padding:5px 8px;border-radius:8px;background:var(--surface);border:1.5px solid var(--border);color:var(--text);animation:pop .35s cubic-bezier(.34,1.56,.64,1) backwards;white-space:nowrap}
+.note{align-self:flex-start;font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--red-d);background:var(--red-soft);padding:4px 8px;border-radius:8px;animation:pop .35s backwards}
+.st-warn .note{color:var(--orange-d);background:var(--orange-soft)}
+.st-busy .note{color:var(--purple-d);background:var(--purple-soft)}
+.st-error{border-color:var(--red)!important;animation:shake .5s}
+.st-error .node-ic{background:var(--red)}
+.st-warn .node-ic{background:var(--orange)}
+.st-off{opacity:.5!important}.st-off .node-ic{background:var(--faint)}
+.parts{display:flex;flex-direction:column;gap:5px}
+.part{display:flex;align-items:center;gap:6px;height:22px}
+.part-tag{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:10px;padding:3px 5px;border-radius:6px;background:var(--c-soft);color:var(--c-d);flex:none}
+.recs{display:flex;gap:4px;overflow:hidden;flex:1;min-width:0}
+.rec{flex:none;height:20px;padding:0 6px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:10px;line-height:20px;color:#fff;background:var(--recc);animation:pop .45s cubic-bezier(.34,1.56,.64,1) backwards;white-space:nowrap}
+.rec.pending{background:transparent;border:2px dashed var(--recc);color:var(--recc);line-height:16px}
+.rec.abort{opacity:.4;text-decoration:line-through}
+.rec.marker{border-radius:50%;width:20px;padding:0;text-align:center;font-weight:900}
+.rec.lag{opacity:.55}
+.dbrows{display:flex;flex-direction:column;gap:3px}
+.dbrow{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;background:var(--code-bg);color:var(--text);animation:pop .4s backwards;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dbrow.dup{color:var(--red-d);background:var(--red-soft);text-decoration:line-through}
+.dbrow.gone{opacity:.35;text-decoration:line-through}
+.dbrow.head{background:transparent;color:var(--faint);padding:0 2px;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase}
+
+.chip{position:absolute;left:0;top:0;display:flex;align-items:center;gap:7px;padding:6px 11px 6px 9px;border-radius:999px;background:var(--cc);color:#fff;font-weight:900;font-size:12px;line-height:1.1;box-shadow:0 3px 0 var(--shadow);white-space:nowrap;z-index:5}
+.chip small{display:block;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:9.5px;opacity:.9;margin-top:2px}
+.chip .chip-ic{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.25);display:grid;place-items:center;flex:none}
+.chip.dropped{background:var(--red)}
+
+/* inspector */
+.insp{border:2px solid var(--border);border-radius:22px;background:var(--card);padding:16px;display:flex;flex-direction:column;gap:12px;align-self:start;min-height:200px}
+.insp-title{display:flex;align-items:center;gap:8px;font-weight:900;font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+.insp-title .dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px var(--green-soft)}
+.insp h4{margin:0;font-size:17px;font-weight:900;letter-spacing:-.01em}
+.insp-sec{display:flex;flex-direction:column;gap:6px;animation:rise .35s backwards}
+.insp-lab{font-size:11px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:700}
+.kv .k{color:var(--purple-d)}.kv .v{color:var(--text);word-break:break-all}
+.hdr{display:flex;flex-wrap:wrap;gap:5px}
+.hdr span{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;padding:4px 7px;border-radius:8px;background:var(--blue-soft);color:var(--blue-d);border:1.5px solid transparent}
+.hdr span b{color:var(--text);font-weight:700}
+pre.payload{margin:0;padding:10px 12px;border-radius:12px;background:var(--code-bg);font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:600;line-height:1.5;overflow-x:auto;color:var(--text)}
+.pl-k{color:var(--orange-d)}.pl-s{color:var(--green-d)}.pl-n{color:var(--blue-d)}
+.legend-list{display:flex;flex-direction:column;gap:8px}
+.legend-list li{list-style:none;display:flex;gap:10px;align-items:flex-start;font-size:13.5px}
+.legend-list .sw{width:12px;height:12px;border-radius:4px;background:var(--c);flex:none;margin-top:5px}
+.legend-list ul{margin:0;padding:0}
+.insp-note{font-size:13.5px;color:var(--muted);border-left:4px solid var(--yellow);padding:4px 0 4px 12px;border-radius:2px}
+.checks{margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.checks li{list-style:none;display:flex;gap:10px;align-items:flex-start;font-size:13.5px}
+.checks .ck{width:22px;height:22px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;flex:none}
+
+/* footer */
+.lfoot{border-top:2px solid var(--border);background:var(--surface);padding:16px 24px}
+.lfoot-in{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:22px;justify-content:space-between}
+.caption{flex:1;min-width:0;animation:rise .4s cubic-bezier(.22,1,.36,1) backwards}
+.eyebrow{font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--c-d);display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.eyebrow i{width:8px;height:8px;border-radius:50%;background:var(--c);display:inline-block}
+.caption h2{font-size:21px;font-weight:900;letter-spacing:-.015em;line-height:1.15}
+.caption p{margin:6px 0 0;font-size:15px;color:var(--muted);max-width:78ch}
+.caption p b{color:var(--text)}
+.ctl{display:flex;gap:12px;flex:none}
+@media (max-width:700px){.lfoot-in{flex-direction:column;align-items:stretch}.ctl{justify-content:flex-end}}
+
+/* done */
+.done{min-height:100vh;display:grid;place-items:center;position:relative;overflow:hidden;padding:24px}
+.done canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.done-card{position:relative;text-align:center;max-width:520px;display:flex;flex-direction:column;align-items:center;gap:18px;animation:rise .5s cubic-bezier(.22,1,.36,1) backwards}
+.trophy{width:120px;height:120px;border-radius:36px;background:var(--yellow);color:#5b4300;display:grid;place-items:center;box-shadow:0 8px 0 var(--yellow-d);animation:bounce 1.2s cubic-bezier(.34,1.56,.64,1)}
+.done h1{font-size:36px;font-weight:900;letter-spacing:-.02em;color:var(--yellow-d)}
+.done p{margin:0;color:var(--muted);font-size:17px}
+.tiles{display:flex;gap:14px;margin-top:6px}
+.tile{border:2px solid var(--c);border-radius:16px;overflow:hidden;min-width:130px;background:var(--card)}
+.tile .tl{background:var(--c);color:#fff;font-size:11px;font-weight:900;letter-spacing:.1em;padding:6px}
+.tile .tv{padding:12px;font-size:24px;font-weight:900;color:var(--c-d);display:flex;justify-content:center;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+.done .ctl{margin-top:10px}
+
+@keyframes pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes rise{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+@keyframes shake{0%,100%{translate:0}20%{translate:-6px}40%{translate:6px}60%{translate:-4px}80%{translate:4px}}
+@keyframes bounce{0%{transform:scale(0) rotate(-20deg)}60%{transform:scale(1.15) rotate(6deg)}100%{transform:none}}
+@media (prefers-reduced-motion: reduce){
+  .rec,.badge,.note,.dbrow,.insp-sec,.caption,.done-card,.trophy{animation:none}
+  .st-error{animation:none}
+}
+</style>
+
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+const {useState,useEffect,useRef,useMemo,useLayoutEffect} = React;
+const h = React.createElement;
+const cx = (...a)=>a.filter(Boolean).join(' ');
+const RM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc = s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const MD = s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`(.+?)`/g,'<code>$1</code>');
+
+/* ---------- icons ---------- */
+const ICONS={
+  send:'<path d="M3 11l18-8-8 18-2-8-8-2z"/><path d="M11 13l10-10"/>',
+  gear:'<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+  db:'<ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+  topic:'<path d="M4 6h16M4 12h16M4 18h10"/><circle cx="20" cy="18" r="1.4" fill="currentColor" stroke="none"/>',
+  coord:'<circle cx="12" cy="12" r="3"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M6.6 7.4l3.2 2.6M14.2 10l3.2-2.6M6.6 16.6l3.2-2.6M14.2 14l3.2 2.6"/>',
+  person:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>',
+  wave:'<path d="M2 12c2.5-6 4.5-6 6.7 0s4.2 6 6.6 0 4.2-6 6.7 0"/>',
+  shield:'<path d="M12 2.5l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11v-6z"/><path d="M8.8 12l2.2 2.2 4.4-4.4"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17" cy="9" r="2.6"/><path d="M16 14.5c3 0 5.5 2.2 5.5 5.5"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+  inbox:'<path d="M3 13l2.5-8h13L21 13v6H3z"/><path d="M3 13h5l1.5 3h5L16 13h5"/>',
+  envelope:'<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 7.5l9 6 9-6"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  left:'<path d="M15 5l-7 7 7 7"/>',
+  crown:'<path d="M3 18l1.2-11 5.3 5 2.5-7 2.5 7 5.3-5L21 18z"/><path d="M4 21h16"/>',
+  bolt:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+  play:'<path d="M7 4l13 8-13 8z"/>',
+  refresh:'<path d="M20 12a8 8 0 1 1-2.5-5.8"/><path d="M20 3v5h-5"/>',
+  key:'<circle cx="8" cy="14" r="4"/><path d="M11 11l9-9M16 6l2.5 2.5M13 9l2.5 2.5"/>',
+};
+const Icon=(name,size=20,props={})=>h('svg',{width:size,height:size,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.2,strokeLinecap:'round',strokeLinejoin:'round',dangerouslySetInnerHTML:{__html:ICONS[name]||''},...props});
+const SVG=(name,size)=>`<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
+const KIND_ICON={service:'gear',topic:'topic',db:'db',coord:'coord'};
+
+/* ---------- journeys ---------- */
+const LEGEND_EOS={title:'Who is who',list:[
+  {c:'blue',t:'**Order Service** — the producer. Publishes one record per order.'},
+  {c:'orange',t:'**orders / payments** — Kafka topics. One partition each, to keep the picture small.'},
+  {c:'green',t:'**Payment Service** — consumes orders, charges the card, produces payments.'},
+  {c:'purple',t:'**Transaction Coordinator** — a broker-side role that owns the transaction log and writes commit/abort markers.'},
+]};
+
+const JOURNEYS=[
+{
+  id:'eos', title:'Exactly-Once Delivery', color:'green', icon:'shield', minutes:6,
+  blurb:'Idempotent producers, transactions and read_committed consumers — how Kafka charges a card once, even through retries and crashes.',
+  nodes:[
+    {id:'producer',kind:'service',label:'Order Service',sub:'producer',x:40,y:210,w:200,h:112,color:'blue',icon:'send'},
+    {id:'coord',kind:'coord',label:'Transaction Coordinator',sub:'broker-side',x:370,y:26,w:290,h:58,color:'purple'},
+    {id:'orders',kind:'topic',label:'orders',sub:'topic · 1 partition',parts:1,x:380,y:200,w:270,h:112,color:'orange'},
+    {id:'consumer',kind:'service',label:'Payment Service',sub:'consumer + producer',x:770,y:210,w:200,h:112,color:'green',icon:'gear'},
+    {id:'payments',kind:'topic',label:'payments',sub:'topic',parts:1,x:740,y:392,w:250,h:106,color:'orange'},
+    {id:'offsets',kind:'topic',label:'__consumer_offsets',sub:'internal topic',parts:1,x:380,y:392,w:270,h:106,color:'purple'},
+  ],
+  edges:[['producer','orders'],['producer','coord'],['orders','consumer'],['consumer','payments'],['consumer','offsets'],['consumer','coord']],
+  steps:[
+    {title:'The setup',text:'Order Service publishes orders. Payment Service reads each order, charges the card and publishes a payment event. The goal: every order is charged **exactly once** — through retries, network hiccups and crashes.',inspect:LEGEND_EOS},
+    {title:'Turn on the idempotent producer',text:'With `enable.idempotence=true` the producer asks for a **Producer ID** (PID). Because we also set a `transactional.id`, the request goes to the transaction coordinator, which fences any older instance with the same id by bumping the **epoch**.',
+      focus:['producer','coord'],
+      messages:[{from:'producer',to:'coord',label:'InitProducerId',sub:'transactional.id = payment-svc-1',color:'purple'},{from:'coord',to:'producer',label:'PID 1001',sub:'epoch 0',color:'purple'}],
+      states:{producer:{badge:'PID 1001 · epoch 0'},coord:{badge:'payment-svc-1 → PID 1001'}},
+      inspect:{title:'Producer config',kv:{'enable.idempotence':'true','acks':'all','transactional.id':'payment-svc-1','retries':'2147483647','max.in.flight.requests.per.connection':'5'}}},
+    {title:'Send order-42',text:'Every record carries the PID and a **sequence number** per partition, starting at 0. The broker appends it at offset 0 and remembers “PID 1001 → last seq 0”.',
+      focus:['producer','orders'],
+      messages:[{from:'producer',to:'orders',label:'order-42',sub:'seq 0',color:'blue'}],
+      states:{producer:{badge:'PID 1001 · seq 0'},orders:{recs:[[{k:'order-42',c:'blue',at:1.3}]],badge:'PID 1001 → seq 0'}},
+      inspect:{title:'ProduceRequest',headers:{key:'order-42',pid:'1001',epoch:'0',seq:'0',partition:'0'},payload:{orderId:'order-42',customer:'c-981',total:149.90,currency:'EUR'}}},
+    {title:'The ack gets lost',text:'The broker stored the record — but the acknowledgement never made it back. From the producer’s side this looks exactly like a failed send, so it will **retry**.',
+      focus:['producer','orders'],
+      messages:[{from:'orders',to:'producer',label:'ack',sub:'offset 0',color:'green',drop:true,dropLabel:'network timeout'}],
+      states:{producer:{badge:'PID 1001 · seq 0',status:'warn',note:'timeout — retrying'}}},
+    {title:'Retry, same sequence number',text:'The retry carries the **same PID and seq 0**. The broker already has seq 0 for this PID, so it drops the duplicate and simply re-sends the ack. There is still only one order-42 in the log.',
+      focus:['producer','orders'],
+      messages:[{from:'producer',to:'orders',label:'order-42',sub:'seq 0 · retry',color:'blue',drop:true,dropLabel:'duplicate — ignored'},{from:'orders',to:'producer',label:'ack',sub:'offset 0',color:'green'}],
+      states:{producer:{badge:'PID 1001 · seq 0 ✓'},orders:{recs:[[{k:'order-42',c:'blue'}]],badge:'seq 0 already seen'}},
+      inspect:{title:'Broker-side dedup',kv:{'producer state':'PID 1001 → [seq 0]','incoming':'PID 1001, seq 0','result':'DUPLICATE_SEQUENCE_NUMBER → ack again'},note:'The producer keeps up to 5 in-flight batches; the broker keeps the last 5 sequence numbers per PID/partition, so ordering survives retries too.'}},
+    {title:'Consumer reads with read_committed',text:'Payment Service polls with `isolation.level=read_committed`. It only ever sees records from **committed** transactions (plus plain non-transactional records like this one).',
+      focus:['orders','consumer'],
+      messages:[{from:'orders',to:'consumer',label:'order-42',sub:'offset 0',color:'blue'}],
+      states:{consumer:{badge:'read_committed · group payment-svc'}},
+      inspect:{title:'Consumer config',kv:{'group.id':'payment-svc','isolation.level':'read_committed','enable.auto.commit':'false'}}},
+    {title:'Begin a transaction',text:'Before touching any output, Payment Service calls `beginTransaction()`. The coordinator records which partitions join in. Everything produced from now on is one **atomic unit**.',
+      focus:['consumer','coord'],
+      messages:[{from:'consumer',to:'coord',label:'AddPartitionsToTxn',sub:'payments-0, __consumer_offsets',color:'purple'}],
+      states:{consumer:{badge:'txn open · payment-svc-1',status:'busy',note:'in transaction'},coord:{badge:'payment-svc-1: Ongoing'}}},
+    {title:'Produce the payment — uncommitted',text:'The card is charged and `pay-42` lands in the payments topic. It is physically in the log, but **invisible** to read_committed consumers until the transaction commits.',
+      focus:['consumer','payments'],
+      messages:[{from:'consumer',to:'payments',label:'pay-42',sub:'charged 149.90 EUR',color:'green'}],
+      states:{payments:{recs:[[{k:'pay-42',c:'green',s:'pending',at:1.3}]]}},
+      inspect:{title:'pay-42 (uncommitted)',headers:{key:'order-42',pid:'1001',epoch:'0',seq:'0',transactional:'true'},payload:{paymentId:'pay-42',orderId:'order-42',amount:149.90,status:'CAPTURED'}}},
+    {title:'Offsets join the transaction',text:'`sendOffsetsToTransaction(offsets, groupMetadata)` writes “orders-0 → next offset 1” into `__consumer_offsets` **inside the same transaction**. Consuming and producing now succeed or fail together.',
+      focus:['consumer','offsets'],
+      messages:[{from:'consumer',to:'offsets',label:'orders-0 → 1',sub:'group payment-svc',color:'purple'}],
+      states:{offsets:{recs:[[{k:'orders-0 → 1',c:'purple',s:'pending',at:1.3}]]}}},
+    {title:'Commit',text:'`commitTransaction()` asks the coordinator to write **COMMIT markers** into every partition the transaction touched. The payment becomes visible and the offset is committed — atomically.',
+      focus:['consumer','coord','payments','offsets'],
+      messages:[{from:'consumer',to:'coord',label:'EndTxn',sub:'commit',color:'purple'}],
+      states:{consumer:{badge:'txn committed',status:'ok'},coord:{badge:'payment-svc-1: CompleteCommit'},payments:{recs:[[{k:'pay-42',c:'green'},{k:'C',c:'purple',s:'marker',at:1.9}]]},offsets:{recs:[[{k:'orders-0 → 1',c:'purple'},{k:'C',c:'purple',s:'marker',at:2.2}]]}},
+      inspect:{title:'Control records',kv:{'payments-0':'pay-42, [COMMIT]','__consumer_offsets':'payment-svc/orders-0 = 1, [COMMIT]','txn state':'CompleteCommit'},note:'Markers are ordinary records with a control flag. read_committed consumers buffer open transactions and release them when the marker arrives; the “last stable offset” is what they can read up to.'}},
+    {title:'What if it crashed before commit?',text:'Rewind: Payment Service dies right after producing pay-42. The coordinator times the transaction out and writes **ABORT markers**. read_committed consumers skip pay-42, the offset stays at 0, and the restarted instance (epoch 1 — the old one is fenced) processes order-42 again. Once. No double charge.',
+      focus:['consumer','coord','payments','offsets'],
+            states:{consumer:{badge:'crashed mid-transaction',status:'error',note:'no commit'},coord:{badge:'transaction.timeout.ms → Abort'},payments:{recs:[[{k:'pay-42',c:'green',s:'abort'},{k:'A',c:'red',s:'marker',at:1.0}]]},offsets:{recs:[[{k:'orders-0 → 1',c:'purple',s:'abort'},{k:'A',c:'red',s:'marker',at:1.3}]]}},
+      inspect:{title:'Fencing',kv:{'old instance':'PID 1001, epoch 0 → fenced','new instance':'PID 1001, epoch 1','committed offset':'orders-0 = 0 (unchanged)'},note:'Any late write from the zombie with epoch 0 is rejected with ProducerFenced. That is what keeps “exactly once” true even when two instances briefly overlap.'}},
+    {title:'Exactly once, end to end',text:'Three ingredients, one guarantee. This covers Kafka-to-Kafka. A side effect outside Kafka — the HTTP call to the card gateway — still needs its own **idempotency key** (order-42 works nicely).',
+      states:{consumer:{badge:'read_committed · EOS',status:'ok'},coord:{badge:'payment-svc-1 → PID 1001'},payments:{recs:[[{k:'pay-42',c:'green'},{k:'C',c:'purple',s:'marker'}]]},offsets:{recs:[[{k:'orders-0 → 1',c:'purple'},{k:'C',c:'purple',s:'marker'}]]},producer:{badge:'PID 1001 · seq 0 ✓',status:'ok'}},
+      inspect:{title:'Checklist',checks:['Idempotent producer: retries never duplicate a record in the log.','Transactions: consume → process → produce → commit offsets, all or nothing.','read_committed: downstream never sees aborted data.','Kafka Streams turns all of this on with processing.guarantee=exactly_once_v2.']}},
+  ]
+},
+{
+  id:'groups', title:'Consumer Groups & Rebalancing', color:'blue', icon:'users', minutes:5,
+  blurb:'How partitions get shared between consumers, what happens when one of them dies, and why cooperative rebalancing matters.',
+  nodes:[
+    {id:'clicks',kind:'topic',label:'clicks',sub:'topic · 4 partitions',parts:4,x:40,y:150,w:290,h:170,color:'orange'},
+    {id:'coord',kind:'coord',label:'Group Coordinator',sub:'broker-side',x:720,y:26,w:260,h:58,color:'purple'},
+    {id:'c1',kind:'service',label:'Analytics A',sub:'group analytics',x:470,y:120,w:210,h:96,color:'blue',icon:'gear'},
+    {id:'c2',kind:'service',label:'Analytics B',sub:'group analytics',x:470,y:250,w:210,h:96,color:'blue',icon:'gear'},
+    {id:'c3',kind:'service',label:'Analytics C',sub:'group analytics',x:470,y:380,w:210,h:96,color:'blue',icon:'gear'},
+  ],
+  edges:[['clicks','c1'],['clicks','c2'],['clicks','c3'],['c1','coord'],['c2','coord'],['c3','coord']],
+  steps:[
+    {title:'The setup',text:'Topic `clicks` has 4 partitions. Three instances of the analytics service start with the same `group.id`. Kafka will share the partitions between them: **each partition is read by exactly one consumer** in the group.',
+      states:{clicks:{recs:[[{k:'118',c:'orange'},{k:'119',c:'orange'}],[{k:'52',c:'orange'}],[{k:'201',c:'orange'},{k:'202',c:'orange'},{k:'203',c:'orange'}],[{k:'77',c:'orange'}]]}},
+      inspect:{title:'Who is who',list:[{c:'orange',t:'**clicks** — 4 partitions P0…P3, each an ordered log.'},{c:'blue',t:'**Analytics A/B/C** — three consumers, one group.'},{c:'purple',t:'**Group Coordinator** — the broker that tracks membership and stores committed offsets for this group.'}]}},
+    {title:'Join the group',text:'Each consumer sends `JoinGroup` to the coordinator. The first one in becomes the **group leader** — not because it is special, but because someone has to run the assignment.',
+      focus:['c1','c2','c3','coord'],
+      messages:[{from:'c1',to:'coord',label:'JoinGroup',sub:'analytics · leader',color:'purple',at:0.2},{from:'c2',to:'coord',label:'JoinGroup',sub:'analytics',color:'purple',at:0.6},{from:'c3',to:'coord',label:'JoinGroup',sub:'analytics',color:'purple',at:1.0}],
+      states:{coord:{badge:'analytics: PreparingRebalance'},c1:{badge:'leader'}}},
+    {title:'The leader assigns partitions',text:'The leader runs the assignor (`cooperative-sticky` here) and hands the plan back via `SyncGroup`. A gets P0 and P1, B gets P2, C gets P3. The group is now **Stable**, generation 1.',
+      focus:['coord','c1','c2','c3'],
+      messages:[{from:'coord',to:'c1',label:'SyncGroup',sub:'P0 · P1',color:'purple',at:0.2},{from:'coord',to:'c2',label:'SyncGroup',sub:'P2',color:'purple',at:0.5},{from:'coord',to:'c3',label:'SyncGroup',sub:'P3',color:'purple',at:0.8}],
+      states:{coord:{badge:'analytics: Stable · gen 1'},c1:{badge:'P0 · P1'},c2:{badge:'P2'},c3:{badge:'P3'}},
+      inspect:{title:'Assignment · generation 1',kv:{'Analytics A':'clicks-0, clicks-1','Analytics B':'clicks-2','Analytics C':'clicks-3','strategy':'CooperativeStickyAssignor'}}},
+    {title:'Records flow',text:'Each consumer fetches only from its partitions. Two consumers never read the same partition, so no record is processed twice **within the group** — and ordering per partition is preserved.',
+      messages:[{from:'clicks',to:'c1',label:'click',sub:'P0 · offset 120',color:'orange',at:0.2},{from:'clicks',to:'c2',label:'click',sub:'P2 · offset 204',color:'orange',at:0.5},{from:'clicks',to:'c3',label:'click',sub:'P3 · offset 78',color:'orange',at:0.8}],
+      states:{clicks:{recs:[[{k:'118',c:'orange'},{k:'119',c:'orange'},{k:'120',c:'orange',at:0.1}],[{k:'52',c:'orange'}],[{k:'201',c:'orange'},{k:'202',c:'orange'},{k:'203',c:'orange'},{k:'204',c:'orange',at:0.4}],[{k:'77',c:'orange'},{k:'78',c:'orange',at:0.7}]]}},
+      inspect:{title:'Fetched record',headers:{topic:'clicks',partition:'3',offset:'78',key:'user-9f2'},payload:{userId:'user-9f2',page:'/pricing',ts:'2026-09-03T10:14:02Z'}}},
+    {title:'Heartbeats keep membership alive',text:'A background thread sends heartbeats every `heartbeat.interval.ms` (3 s). Miss them for `session.timeout.ms` (45 s) and the coordinator declares you dead. Second clock: if `poll()` is not called within `max.poll.interval.ms` (5 min), the consumer **leaves the group itself**.',
+      focus:['c1','c2','c3','coord'],
+      messages:[{from:'c1',to:'coord',label:'heartbeat',color:'green',at:0.1,dur:0.8},{from:'c2',to:'coord',label:'heartbeat',color:'green',at:0.35,dur:0.8},{from:'c3',to:'coord',label:'heartbeat',color:'green',at:0.6,dur:0.8}],
+      inspect:{title:'Liveness settings',kv:{'heartbeat.interval.ms':'3000','session.timeout.ms':'45000','max.poll.interval.ms':'300000','max.poll.records':'500'},note:'A slow handler that blows max.poll.interval.ms causes the most common “mystery rebalance” in production.'}},
+    {title:'Consumer C dies',text:'C is OOM-killed. Its heartbeats stop; after `session.timeout.ms` the coordinator removes it and triggers a **rebalance**. P3 has no reader — its records pile up (consumer lag).',
+      focus:['c3','coord','clicks'],
+      messages:[{from:'c3',to:'coord',label:'heartbeat',color:'green',drop:true,dropLabel:'no response',dur:0.8}],
+      states:{c3:{badge:'session timed out',status:'error',note:'OOMKilled'},coord:{badge:'analytics: PreparingRebalance'},clicks:{recs:[[{k:'118',c:'orange'},{k:'119',c:'orange'},{k:'120',c:'orange'}],[{k:'52',c:'orange'}],[{k:'201',c:'orange'},{k:'202',c:'orange'},{k:'203',c:'orange'},{k:'204',c:'orange'}],[{k:'77',c:'orange'},{k:'78',c:'orange'},{k:'79',c:'red',s:'lag',at:1.2},{k:'80',c:'red',s:'lag',at:1.6},{k:'81',c:'red',s:'lag',at:2.0}]]}},
+      inspect:{title:'Lag on clicks-3',kv:{'log end offset':'82','committed offset':'79','lag':'3 and growing'}}},
+    {title:'Cooperative rebalance',text:'With cooperative-sticky assignment A and B **keep what they have** and never stop consuming (the old eager protocol revoked everything first — “stop the world”). Only the orphaned P3 is handed to B, which resumes from P3’s last committed offset. Nothing is lost; the last uncommitted records may be seen twice.',
+      focus:['coord','c2','clicks'],
+      messages:[{from:'coord',to:'c2',label:'SyncGroup',sub:'+ P3',color:'purple',at:0.2},{from:'clicks',to:'c2',label:'click',sub:'P3 · offset 79 · resumed',color:'orange',at:1.7}],
+      states:{coord:{badge:'analytics: Stable · gen 2'},c2:{badge:'P2 · P3'},clicks:{recs:[[{k:'118',c:'orange'},{k:'119',c:'orange'},{k:'120',c:'orange'}],[{k:'52',c:'orange'}],[{k:'201',c:'orange'},{k:'202',c:'orange'},{k:'203',c:'orange'},{k:'204',c:'orange'}],[{k:'77',c:'orange'},{k:'78',c:'orange'},{k:'79',c:'orange',at:2.8},{k:'80',c:'orange',at:3.0},{k:'81',c:'orange',at:3.2}]]}},
+      inspect:{title:'Assignment · generation 2',kv:{'Analytics A':'clicks-0, clicks-1 (kept)','Analytics B':'clicks-2, clicks-3 (+1)','Analytics C':'—'}}},
+    {title:'C comes back',text:'Kubernetes restarts C. It joins again; the sticky assignor moves **P3 back to C** with a single small revocation from B. Generation 3.',
+      focus:['c3','coord','c2'],
+      messages:[{from:'c3',to:'coord',label:'JoinGroup',sub:'analytics',color:'purple',at:0.2},{from:'coord',to:'c2',label:'revoke',sub:'− P3',color:'purple',at:1.4},{from:'coord',to:'c3',label:'SyncGroup',sub:'P3',color:'purple',at:1.7}],
+      states:{c3:{badge:'P3',status:'ok'},c2:{badge:'P2'},coord:{badge:'analytics: Stable · gen 3'}}},
+    {title:'Recap',text:'Partitions are the unit of parallelism: more consumers than partitions means idle consumers. Rebalances fire on joins, leaves, timeouts and partition-count changes. Keep them cheap with cooperative-sticky — or the new KIP-848 protocol, where the **broker** does the assignment.',
+      inspect:{title:'Checklist',checks:['One partition → one consumer per group; consumers never share a partition.','Tune session.timeout.ms and max.poll.interval.ms to your handler’s real latency.','Use CooperativeStickyAssignor (or group.protocol=consumer on Kafka 4.x).','Commit offsets before revocation via a ConsumerRebalanceListener.']}},
+  ]
+},
+{
+  id:'offsets', title:'Offset Commits: At-Least vs At-Most Once', color:'orange', icon:'clock', minutes:5,
+  blurb:'The single ordering decision that decides your delivery semantics: do the work first, or commit the offset first?',
+  nodes:[
+    {id:'emails',kind:'topic',label:'emails',sub:'topic',parts:1,x:40,y:206,w:260,h:100,color:'orange'},
+    {id:'consumer',kind:'service',label:'Mailer Service',sub:'consumer · group mailer',x:400,y:200,w:210,h:112,color:'green',icon:'gear'},
+    {id:'db',kind:'db',label:'Mail log',sub:'Postgres',x:760,y:60,w:220,h:150,color:'purple'},
+    {id:'offsets',kind:'topic',label:'__consumer_offsets',sub:'internal topic',parts:1,x:740,y:350,w:250,h:100,color:'purple'},
+  ],
+  edges:[['emails','consumer'],['consumer','db'],['consumer','offsets']],
+  steps:[
+    {title:'The setup',text:'Mailer polls `emails`, sends the mail and writes a row to the mail log. Auto-commit is off. The one question that decides semantics: **when** do you commit the offset — after the work, or before?',
+      states:{emails:{recs:[[{k:'7',c:'orange'},{k:'8',c:'orange'},{k:'9',c:'orange'}]]},consumer:{badge:'committed: 7'},db:{rows:[{t:'msg_id  recipient  status',s:'head'},'#6  carol@…  sent']},offsets:{recs:[[{k:'mailer → 7',c:'purple'}]]}},
+      inspect:{title:'Reading the badge',kv:{'committed: 7':'next offset to read is 7','position':'where the consumer currently is'},note:'A committed offset is the offset of the next record to process, not the last one processed.'}},
+    {title:'Poll offset 7',text:'`poll()` returns the record at offset 7. Nothing has been committed yet — the group still says “start at 7”.',
+      focus:['emails','consumer'],
+      messages:[{from:'emails',to:'consumer',label:'welcome-7',sub:'offset 7',color:'orange'}],
+      states:{consumer:{badge:'committed: 7 · position: 8'}},
+      inspect:{title:'Record',headers:{topic:'emails',partition:'0',offset:'7',key:'alice@example.com'},payload:{template:'welcome',to:'alice@example.com',msgId:'m-7'}}},
+    {title:'At-least-once: do the work first',text:'Send the mail, insert the row. The offset is still 7. If we die now, the replacement consumer will simply start at 7 again.',
+      focus:['consumer','db'],
+      messages:[{from:'consumer',to:'db',label:'INSERT m-7',sub:'welcome → alice',color:'purple'}],
+      states:{db:{rows:[{t:'msg_id  recipient  status',s:'head'},'#6  carol@…  sent',{t:'#7  alice@…  sent',at:1.3}]}}},
+    {title:'…then commit',text:'`commitSync()` writes “mailer / emails-0 → 8” to `__consumer_offsets`. Only now is offset 7 considered done.',
+      focus:['consumer','offsets'],
+      messages:[{from:'consumer',to:'offsets',label:'commit',sub:'emails-0 → 8',color:'purple'}],
+      states:{consumer:{badge:'committed: 8'},offsets:{recs:[[{k:'mailer → 7',c:'purple'},{k:'mailer → 8',c:'purple',at:1.3}]]}}},
+    {title:'Crash between work and commit',text:'Offset 8: the mail goes out, the row is written — and the pod is killed **before the commit**. The committed offset still says 8.',
+      focus:['emails','consumer','db'],
+      messages:[{from:'emails',to:'consumer',label:'promo-8',sub:'offset 8',color:'orange'},{from:'consumer',to:'db',label:'INSERT m-8',sub:'promo → bob',color:'purple'}],
+      states:{consumer:{badge:'committed: 8 · position: 9',status:'error',note:'killed before commit'},db:{rows:[{t:'msg_id  recipient  status',s:'head'},'#6  carol@…  sent','#7  alice@…  sent',{t:'#8  bob@…  sent',at:2.8}]}}},
+    {title:'Replay — and the duplicate',text:'The new instance starts at the committed offset, 8, and processes promo-8 **again**. This is at-least-once: nothing is lost, duplicates are possible. The fix is not in Kafka — it is an idempotent handler: a unique key on `msg_id` makes the second insert fail, so the mail is not re-sent.',
+      focus:['emails','consumer','db'],
+      messages:[{from:'emails',to:'consumer',label:'promo-8',sub:'offset 8 · again',color:'orange'},{from:'consumer',to:'db',label:'INSERT m-8',sub:'promo → bob',color:'purple',drop:true,dropLabel:'unique violation'}],
+      states:{consumer:{badge:'restarted · committed: 8',status:'ok'},db:{rows:[{t:'msg_id  recipient  status',s:'head'},'#6  carol@…  sent','#7  alice@…  sent','#8  bob@…  sent',{t:'#8  bob@…  duplicate',s:'dup',at:2.9}]}},
+      inspect:{title:'Idempotent handler',kv:{'dedupe key':'msg_id (m-8)','constraint':'UNIQUE (msg_id)','on conflict':'skip send, commit offset'},note:'Do the dedupe check and the side effect in one place. Checking first and sending later reopens the same window.'}},
+    {title:'At-most-once: commit first',text:'Flip the order: commit offset 10 right after poll (or use auto-commit with a tiny interval), then do the work. Crash before the work finishes and offset 9 is **skipped forever**. Fine for metrics ticks, terrible for emails.',
+      focus:['emails','consumer','offsets'],
+      messages:[{from:'emails',to:'consumer',label:'reset-9',sub:'offset 9',color:'orange'},{from:'consumer',to:'offsets',label:'commit',sub:'emails-0 → 10',color:'purple'}],
+      states:{consumer:{badge:'committed: 10',status:'error',note:'crashed before sending'},offsets:{recs:[[{k:'mailer → 7',c:'purple'},{k:'mailer → 8',c:'purple'},{k:'mailer → 10',c:'purple',at:2.6}]]},emails:{recs:[[{k:'7',c:'orange'},{k:'8',c:'orange'},{k:'9',c:'red',s:'abort'}]]}}},
+    {title:'Recap',text:'The order of two lines of code is the whole story. `enable.auto.commit=true` commits on the **next** `poll()`, which is at-least-once with surprises: everything from the previous batch is treated as processed, even if the handler is still working on it.',
+      states:{consumer:{badge:'manual commit',status:'ok'}},
+      inspect:{title:'Cheat sheet',kv:{'at-most-once':'commit → process','at-least-once':'process → commit (+ idempotent handler)','exactly-once':'transactions, or idempotent handler + at-least-once','auto-commit':'at-least-once, batch granularity'}}},
+  ]
+},
+{
+  id:'dlq', title:'Retries & Dead Letter Queue', color:'red', icon:'inbox', minutes:5,
+  blurb:'A poison record must not block the partition behind it — and must not vanish. Retry topics, backoff tiers and a DLQ with a paper trail.',
+  nodes:[
+    {id:'payments',kind:'topic',label:'payments',sub:'topic',parts:1,x:40,y:40,w:260,h:100,color:'orange'},
+    {id:'retry',kind:'topic',label:'payments-retry',sub:'delay 10 s',parts:1,x:40,y:210,w:260,h:100,color:'yellow'},
+    {id:'dlq',kind:'topic',label:'payments-dlq',sub:'dead letters',parts:1,x:40,y:390,w:260,h:100,color:'red'},
+    {id:'consumer',kind:'service',label:'Ledger Service',sub:'consumer',x:410,y:200,w:210,h:112,color:'green',icon:'gear'},
+    {id:'db',kind:'db',label:'Ledger',sub:'Postgres',x:760,y:60,w:220,h:150,color:'purple'},
+    {id:'ops',kind:'service',label:'On-call redrive',sub:'tooling',x:760,y:380,w:220,h:96,color:'purple',icon:'person'},
+  ],
+  edges:[['payments','consumer'],['consumer','retry'],['retry','consumer'],['consumer','dlq'],['consumer','db'],['dlq','ops'],{from:'ops',to:'payments',bend:{x:350,y:545}}],
+  steps:[
+    {title:'The setup',text:'Ledger Service posts every payment to the ledger. Some records will fail — a malformed amount, a downstream outage. A failing record must **not block** the records behind it, and must **not be silently dropped**.',
+      states:{payments:{recs:[[{k:'309',c:'orange'},{k:'310',c:'orange'},{k:'311',c:'orange'}]]},consumer:{badge:'committed: 310'},db:{rows:[{t:'payment  amount',s:'head'},'pay-76  80.00']}},
+      inspect:{title:'Who is who',list:[{c:'orange',t:'**payments** — the main topic.'},{c:'yellow',t:'**payments-retry** — same records, read after a delay.'},{c:'red',t:'**payments-dlq** — records that gave up, kept for humans.'},{c:'purple',t:'**Ledger** and the **redrive tool** the on-call engineer uses.'}]}},
+    {title:'A poison record',text:'pay-77 arrives with `"amount": "12,50"` — a decimal comma from a misconfigured producer. Parsing throws. The handler cannot make progress on this record, ever.',
+      focus:['payments','consumer'],
+      messages:[{from:'payments',to:'consumer',label:'pay-77',sub:'offset 310',color:'orange'}],
+      states:{consumer:{badge:'NumberFormatException',status:'warn',note:'handler failed'}},
+      inspect:{title:'pay-77',headers:{key:'pay-77',offset:'310','content-type':'application/json'},payload:{paymentId:'pay-77',account:'acc-31',amount:'12,50',currency:'EUR'}}},
+    {title:'Don’t block the partition',text:'Retrying in place would stall offsets 311, 312… behind one bad record (**head-of-line blocking**). Instead: publish pay-77 to the retry topic with the failure recorded in headers, commit offset 311, move on.',
+      focus:['consumer','retry'],
+      messages:[{from:'consumer',to:'retry',label:'pay-77',sub:'x-retry-count: 1',color:'yellow'}],
+      states:{consumer:{badge:'committed: 311',status:'ok'},retry:{recs:[[{k:'pay-77 ·1',c:'yellow',at:1.3}]]}},
+      inspect:{title:'Retry headers',headers:{'x-retry-count':'1','x-original-topic':'payments','x-original-partition':'0','x-original-offset':'310','x-exception':'NumberFormatException: "12,50"','x-first-failure':'2026-09-03T10:14:02Z'}}},
+    {title:'The healthy records go through',text:'pay-78 is processed normally. The partition never stopped. Lag stays flat.',
+      focus:['payments','consumer','db'],
+      messages:[{from:'payments',to:'consumer',label:'pay-78',sub:'offset 311',color:'orange'},{from:'consumer',to:'db',label:'INSERT',sub:'pay-78 · 42.00',color:'purple'}],
+      states:{consumer:{badge:'committed: 312'},db:{rows:[{t:'payment  amount',s:'head'},'pay-76  80.00',{t:'pay-78  42.00',at:2.8}]}}},
+    {title:'Retry with backoff',text:'A retry consumer reads `payments-retry` after the delay. Same record, same exception. One topic per backoff tier (1 s → 10 s → 60 s) is the common pattern; the header count goes 2, then 3.',
+      focus:['retry','consumer'],
+      messages:[{from:'retry',to:'consumer',label:'pay-77',sub:'attempt 2',color:'yellow'},{from:'consumer',to:'retry',label:'pay-77',sub:'x-retry-count: 2',color:'yellow'},{from:'retry',to:'consumer',label:'pay-77',sub:'attempt 3',color:'yellow'}],
+      states:{consumer:{badge:'NumberFormatException ×3',status:'warn',note:'retrying'},retry:{recs:[[{k:'pay-77 ·1',c:'yellow',s:'abort'},{k:'pay-77 ·2',c:'yellow',at:2.8}]]}},
+      inspect:{title:'Backoff tiers',kv:{'payments-retry-1s':'attempt 2','payments-retry-10s':'attempt 3','payments-retry-60s':'attempt 4 (max)'},note:'A parse error is not transient. Classify exceptions: send non-retryable failures straight to the DLQ and save the retries for timeouts and 503s.'}},
+    {title:'Give up → DLQ',text:'After `max-retries` the record goes to `payments-dlq` with the full history in headers. An alert fires on DLQ lag. **Nothing lost, nothing blocked.**',
+      focus:['consumer','dlq'],
+      messages:[{from:'consumer',to:'dlq',label:'pay-77',sub:'x-retry-count: 3',color:'red'}],
+      states:{consumer:{badge:'committed: 312',status:'ok'},dlq:{recs:[[{k:'pay-77',c:'red',at:1.3}]],badge:'lag 1 → alert'},retry:{recs:[[{k:'pay-77 ·1',c:'yellow',s:'abort'},{k:'pay-77 ·2',c:'yellow',s:'abort'}]]}},
+      inspect:{title:'DLQ record',headers:{'x-retry-count':'3','x-original-topic':'payments','x-original-offset':'310','x-exception':'NumberFormatException','x-last-failure':'2026-09-03T10:15:14Z','x-consumer-group':'ledger'},payload:{paymentId:'pay-77',account:'acc-31',amount:'12,50',currency:'EUR'}}},
+    {title:'Redrive',text:'Someone fixes the producer (and the parser, defensively). The redrive tool republishes the DLQ record to `x-original-topic`. It is processed like any other record.',
+      focus:['dlq','ops','payments','consumer','db'],
+      messages:[{from:'dlq',to:'ops',label:'pay-77',sub:'inspect',color:'red',at:0.2},{from:'ops',to:'payments',label:'pay-77',sub:'redrive · amount 12.50',color:'blue',at:1.6},{from:'payments',to:'consumer',label:'pay-77',sub:'offset 313',color:'orange',at:3.0},{from:'consumer',to:'db',label:'INSERT',sub:'pay-77 · 12.50',color:'purple',at:4.3}],
+      states:{payments:{recs:[[{k:'310',c:'orange'},{k:'311',c:'orange'},{k:'312',c:'orange'},{k:'313',c:'orange',at:2.9}]]},dlq:{recs:[[{k:'pay-77',c:'red',s:'abort'}]],badge:'redriven'},db:{rows:[{t:'payment  amount',s:'head'},'pay-76  80.00','pay-78  42.00',{t:'pay-77  12.50',at:5.6}]},consumer:{badge:'committed: 314'}}},
+    {title:'Recap',text:'Retry topics for transient errors, DLQ for permanent ones, headers for the paper trail. One caveat: moving a record to a retry topic **breaks per-key ordering** — if order matters for a key, park the whole key, not just the record.',
+      inspect:{title:'Checklist',checks:['Never retry in place forever: head-of-line blocking stalls the partition.','Keep original topic/partition/offset and the exception in headers.','Classify errors: non-retryable → DLQ immediately.','Alert on DLQ lag; make redrive a button, not a runbook.']}},
+  ]
+},
+{
+  id:'outbox', title:'Transactional Outbox', color:'purple', icon:'db', minutes:5,
+  blurb:'Save the order and publish the event without the dual-write trap: one local transaction, CDC does the publishing.',
+  nodes:[
+    {id:'svc',kind:'service',label:'Order Service',sub:'writes orders',x:30,y:210,w:200,h:112,color:'blue',icon:'send'},
+    {id:'db',kind:'db',label:'Postgres',sub:'orders + outbox',x:290,y:186,w:240,h:160,color:'purple'},
+    {id:'cdc',kind:'service',label:'Debezium',sub:'CDC connector',x:600,y:40,w:200,h:96,color:'orange',icon:'wave'},
+    {id:'topic',kind:'topic',label:'order-events',sub:'topic',parts:1,x:580,y:260,w:240,h:100,color:'orange'},
+    {id:'inv',kind:'service',label:'Inventory',sub:'consumer',x:840,y:254,w:150,h:112,color:'green',icon:'gear'},
+  ],
+  edges:[['svc','db'],['db','cdc'],['cdc','topic'],['topic','inv'],{from:'svc',to:'topic',dashed:true,bend:{x:400,y:440}}],
+  steps:[
+    {title:'The setup',text:'Order Service must save the order **and** tell the world about it. Two systems, one business action. The dashed line is the naive way: call the Kafka producer directly from the request handler.',
+      states:{db:{rows:[{t:'orders',s:'head'},'order-41  c-102  59.00',{t:'outbox',s:'head'}]}},
+      inspect:{title:'Who is who',list:[{c:'blue',t:'**Order Service** — handles the HTTP request.'},{c:'purple',t:'**Postgres** — the `orders` table plus an `outbox` table in the same database.'},{c:'orange',t:'**Debezium** — reads the database’s write-ahead log and publishes to **order-events**.'},{c:'green',t:'**Inventory** — reserves stock when it hears about an order.'}]}},
+    {title:'The dual-write trap',text:'INSERT the order, then `producer.send()`. The process dies between the two: the order exists, but no event was ever published — Inventory never reserves stock. Reverse the order and you get the opposite lie: an event for an order that was never saved.',
+      focus:['svc','db','topic'],
+      messages:[{from:'svc',to:'db',label:'INSERT order-42',color:'purple'},{from:'svc',to:'topic',label:'OrderCreated',sub:'order-42',color:'blue',drop:true,dropLabel:'process crashed'}],
+      states:{svc:{badge:'crashed after INSERT',status:'error',note:'no event'},db:{rows:[{t:'orders',s:'head'},'order-41  c-102  59.00',{t:'order-42  c-981  149.90',at:1.3},{t:'outbox',s:'head'}]}},
+      inspect:{title:'Why not a Kafka transaction?',note:'Kafka transactions span Kafka partitions only. They cannot include a Postgres commit, so they do not solve the dual-write problem.'}},
+    {title:'One transaction, two rows',text:'Outbox pattern: in the **same database transaction**, insert the order and insert an outbox row describing the event. Either both exist or neither. No Kafka call in the request path.',
+      focus:['svc','db'],
+      messages:[{from:'svc',to:'db',label:'BEGIN … COMMIT',sub:'INSERT order + INSERT outbox',color:'purple'}],
+      states:{svc:{badge:'200 OK',status:'ok'},db:{rows:[{t:'orders',s:'head'},'order-41  c-102  59.00','order-42  c-981  149.90',{t:'outbox',s:'head'},{t:'evt-1  OrderCreated  order-42',at:1.3}]}},
+      inspect:{title:'Outbox row',kv:{id:'evt-1',aggregatetype:'order',aggregateid:'order-42',type:'OrderCreated',payload:'{"orderId":"order-42","total":149.90}'}}},
+    {title:'CDC tails the log',text:'Debezium reads Postgres’ write-ahead log through logical replication. It sees the outbox insert as a change event — **no polling**, no extra load on the table, and every committed row is seen exactly in commit order.',
+      focus:['db','cdc'],
+      messages:[{from:'db',to:'cdc',label:'WAL',sub:'INSERT outbox evt-1',color:'purple'}],
+      states:{cdc:{badge:'lsn 0/1A3F2C0'}},
+      inspect:{title:'Change event',headers:{op:'c',table:'public.outbox',lsn:'0/1A3F2C0',txId:'5817'},payload:{id:'evt-1',aggregatetype:'order',aggregateid:'order-42',type:'OrderCreated'}}},
+    {title:'Publish with the right key',text:'The outbox event router maps `aggregatetype` to the topic name and uses `aggregateid` as the **record key**, so all events for one order land in the same partition, in order.',
+      focus:['cdc','topic'],
+      messages:[{from:'cdc',to:'topic',label:'OrderCreated',sub:'key = order-42',color:'orange'}],
+      states:{topic:{recs:[[{k:'evt-1',c:'orange',at:1.3}]]}},
+      inspect:{title:'Kafka record',headers:{topic:'order-events',key:'order-42',id:'evt-1'},payload:{eventId:'evt-1',type:'OrderCreated',orderId:'order-42',total:149.90}}},
+    {title:'Inventory reacts',text:'Inventory consumes the event and reserves stock. It never talked to Order Service, and Order Service never talked to Kafka.',
+      focus:['topic','inv'],
+      messages:[{from:'topic',to:'inv',label:'OrderCreated',sub:'evt-1',color:'orange'}],
+      states:{inv:{badge:'reserved 2 × sku-19'}}},
+    {title:'At-least-once, so be idempotent',text:'After a restart Debezium resumes from its last **saved** WAL position, which can be slightly behind — so an event can be emitted twice. Inventory stores the event ids it has processed and ignores repeats.',
+      focus:['cdc','topic','inv'],
+      messages:[{from:'cdc',to:'topic',label:'OrderCreated',sub:'evt-1 · again',color:'orange'},{from:'topic',to:'inv',label:'OrderCreated',sub:'evt-1',color:'orange',drop:true,dropLabel:'already processed'}],
+      states:{topic:{recs:[[{k:'evt-1',c:'orange'},{k:'evt-1',c:'orange',s:'abort',at:1.3}]]},cdc:{badge:'restarted · resume lsn'},inv:{badge:'seen: evt-1 → skip'}}},
+    {title:'Cleanup and recap',text:'Outbox rows can be deleted right after insert in the same transaction — Debezium still sees the INSERT in the WAL — or purged by a job. One local transaction, CDC does the publishing, consumers dedupe by event id.',
+      states:{db:{rows:[{t:'orders',s:'head'},'order-41  c-102  59.00','order-42  c-981  149.90',{t:'outbox',s:'head'},{t:'evt-1  OrderCreated  order-42',s:'gone'}]},cdc:{badge:'streaming'}},
+      inspect:{title:'Checklist',checks:['Order row and outbox row in one DB transaction.','Debezium outbox event router: topic from aggregatetype, key from aggregateid.','Consumers dedupe on event id — delivery is at-least-once.','Delete or purge outbox rows; the WAL already has them.']}},
+  ]
+},
+{
+  id:'reset', title:'Earliest vs Latest: auto.offset.reset', color:'yellow', icon:'refresh', minutes:5,
+  blurb:'What a brand-new consumer group actually reads on its first poll — and the retention gotcha that quietly resets a healthy group back to square one.',
+  nodes:[
+    {id:'producer',kind:'service',label:'Event Producer',sub:'producer',x:30,y:40,w:230,h:104,color:'blue',icon:'send'},
+    {id:'events',kind:'topic',label:'events',sub:'topic · 1 partition',parts:1,x:30,y:216,w:310,h:112,color:'orange'},
+    {id:'coord',kind:'coord',label:'Group Coordinator',sub:'broker-side',x:400,y:26,w:280,h:58,color:'purple'},
+    {id:'billing',kind:'service',label:'Billing Service',sub:'group billing · has offset',x:750,y:56,w:220,h:104,color:'blue',icon:'gear'},
+    {id:'analytics',kind:'service',label:'Analytics (new)',sub:'group analytics · earliest',x:750,y:196,w:220,h:104,color:'green',icon:'gear'},
+    {id:'dashboard',kind:'service',label:'Live Dashboard (new)',sub:'group dashboard · latest',x:750,y:336,w:220,h:104,color:'red',icon:'gear'},
+  ],
+  edges:[['producer','events'],['events','billing'],['events','analytics'],['events','dashboard'],['billing','coord'],['analytics','coord'],['dashboard','coord']],
+  steps:[
+    {title:'The setup',text:'Topic `events` already holds six records from earlier today. **Billing Service** has been running for weeks and has a committed offset. **Analytics** and **Live Dashboard** are starting for the very first time.',
+      states:{events:{recs:[[{k:'0',c:'orange'},{k:'1',c:'orange'},{k:'2',c:'orange'},{k:'3',c:'orange'},{k:'4',c:'orange'},{k:'5',c:'orange'}]]},billing:{badge:'committed: 6'}},
+      inspect:{title:'Who is who',list:[
+        {c:'orange',t:'**events** — one partition, six records already in the log.'},
+        {c:'blue',t:'**Billing Service** — an existing group. It already has a committed offset.'},
+        {c:'green',t:'**Analytics** — a brand-new group, configured `auto.offset.reset=earliest`.'},
+        {c:'red',t:'**Live Dashboard** — a brand-new group, configured `auto.offset.reset=latest`.'},
+      ],note:'auto.offset.reset only ever fires when the coordinator finds no valid committed offset for that group and partition.'}},
+    {title:'Billing already knows where it left off',text:'Billing fetches its stored offset from the coordinator: **6**. It resumes right there. `auto.offset.reset` never even gets consulted — it only matters when no offset is found.',
+      focus:['billing','coord'],
+      messages:[{from:'billing',to:'coord',label:'OffsetFetch',sub:'group billing',color:'blue'},{from:'coord',to:'billing',label:'offset = 6',color:'purple'}],
+      states:{billing:{badge:'resumes at 6'}},
+      inspect:{title:'OffsetFetch',kv:{'group.id':'billing','stored offset':'6','auto.offset.reset':'not consulted — offset exists'}}},
+    {title:'Analytics joins for the first time',text:'Analytics asks for its offset. The coordinator has never seen this group before — there is nothing to return.',
+      focus:['analytics','coord'],
+      messages:[{from:'analytics',to:'coord',label:'OffsetFetch',sub:'group analytics',color:'green'},{from:'coord',to:'analytics',label:'no committed offset',color:'purple'}],
+      states:{analytics:{badge:'no offset found',status:'warn',note:'falling back to auto.offset.reset'}},
+      inspect:{title:'Config',kv:{'group.id':'analytics','auto.offset.reset':'earliest','committed offset':'none found'}}},
+    {title:'earliest = start of the log',text:'With `earliest`, Analytics seeks to **offset 0** and reads the whole retained history before it ever sees a “new” record.',
+      focus:['events','analytics'],
+      messages:[{from:'events',to:'analytics',label:'records 0…5',sub:'seek → 0 (earliest)',color:'orange'}],
+      states:{analytics:{badge:'position: 6 · caught up',status:'ok'}},
+      inspect:{note:'earliest replays every retained record. Perfect for rebuilding a materialized view; expensive on a busy topic with a long retention.'}},
+    {title:'Live Dashboard joins too',text:'Same story for Live Dashboard: brand-new group, nothing on file at the coordinator.',
+      focus:['dashboard','coord'],
+      messages:[{from:'dashboard',to:'coord',label:'OffsetFetch',sub:'group dashboard',color:'red'},{from:'coord',to:'dashboard',label:'no committed offset',color:'purple'}],
+      states:{dashboard:{badge:'no offset found',status:'warn',note:'falling back to auto.offset.reset'}},
+      inspect:{title:'Config',kv:{'group.id':'dashboard','auto.offset.reset':'latest','committed offset':'none found'}}},
+    {title:'latest = end of the log, right now',text:'With `latest`, Live Dashboard seeks to the **current log end** — offset 6. Records 0 through 5 are simply skipped; it will only ever see what arrives from here on.',
+      focus:['events','dashboard'],
+      messages:[{from:'events',to:'dashboard',label:'seek → 6 (latest)',sub:'log end, nothing read',color:'red'}],
+      states:{dashboard:{badge:'position: 6 · skipped 0-5',status:'ok'}},
+      inspect:{note:'latest is exactly right for “only care about what happens from now on” consumers — dashboards, live metrics. It is a silent way to lose history for anything else.'}},
+    {title:'A new event arrives',text:'The producer publishes record 6. All three groups get it — Billing and Analytics because they were already caught up, Live Dashboard because it is, at last, its very first record.',
+      messages:[{from:'producer',to:'events',label:'evt-6',color:'blue'},{from:'events',to:'billing',label:'evt-6',sub:'offset 6',color:'orange',at:1.4},{from:'events',to:'analytics',label:'evt-6',sub:'offset 6',color:'orange',at:1.4},{from:'events',to:'dashboard',label:'evt-6',sub:'offset 6 · first ever',color:'orange',at:1.4}],
+      states:{events:{recs:[[{k:'0',c:'orange'},{k:'1',c:'orange'},{k:'2',c:'orange'},{k:'3',c:'orange'},{k:'4',c:'orange'},{k:'5',c:'orange'},{k:'6',c:'orange',at:1.3}]]},billing:{badge:'committed: 7'},analytics:{badge:'position: 7'},dashboard:{badge:'position: 7'}}},
+    {title:'The retention trap',text:'Billing goes quiet for a long deploy freeze — over a week with no commits. Brokers don’t keep committed offsets forever: past `offsets.retention.minutes` (7 days by default) an idle group’s offset is simply **deleted**.',
+      focus:['billing','coord'],
+      states:{billing:{status:'off',badge:'idle 8 days',note:'no commits'},coord:{badge:'offsets.retention.minutes exceeded'}},
+      inspect:{kv:{'offsets.retention.minutes':'10080 (7 days, broker default)','billing last commit':'8 days ago','action':'coordinator deletes billing’s stored offset'}}},
+    {title:'Same trap, a config nobody re-checked',text:'Billing redeploys. It has no valid offset any more — exactly like a brand-new group — so `auto.offset.reset` fires. Its config still says **latest**. It jumps straight to the log end, and every order queued during the freeze is gone without an error.',
+      focus:['billing','coord','events'],
+      messages:[{from:'billing',to:'coord',label:'OffsetFetch',sub:'group billing',color:'blue'},{from:'coord',to:'billing',label:'no committed offset',color:'purple'},{from:'events',to:'billing',label:'seek → log end (latest)',sub:'skips everything queued',color:'red'}],
+      states:{billing:{badge:'resumed at log end',status:'warn',note:'orders from the freeze: never processed'}},
+      inspect:{note:'This is the classic “Billing has been fine for months, then silently drops a week of orders” incident — and the postmortem always ends at auto.offset.reset=latest plus an idle window longer than retention.'}},
+    {title:'Recap',text:'`auto.offset.reset` is a fallback, not a steady-state setting — it only fires when there is truly no offset to resume from, whether that’s a new group or one whose offset expired.',
+      states:{billing:{status:'ok',badge:'committed: 7'}},
+      inspect:{title:'Checklist',checks:['It fires only with no valid committed offset: new group, or one past offsets.retention.minutes.','earliest: full replay from offset 0 — safe for correctness, costly on big topics.','latest: starts at the log end — right for live-only consumers, risky as a silent fallback elsewhere.','none: throws NoOffsetForPartitionException instead of guessing — fail loudly and decide explicitly.','A consumer group that goes idle longer than the retention window is not “paused” — its position can quietly disappear.']}},
+  ]
+},
+];
+
+/* ---------- geometry ---------- */
+const center=n=>({x:n.x+n.w/2,y:n.y+n.h/2});
+function bezier(a,b,bend){
+  const ca=center(a),cb=center(b);const dx=cb.x-ca.x,dy=cb.y-ca.y;
+  let p0,p3,k;
+  if(Math.abs(dx)>Math.abs(dy)*1.15){const s=dx>0?1:-1;p0={x:ca.x+s*a.w/2,y:ca.y};p3={x:cb.x-s*b.w/2,y:cb.y};k={x:(p3.x-p0.x)*.5,y:0};}
+  else{const s=dy>0?1:-1;p0={x:ca.x,y:ca.y+s*a.h/2};p3={x:cb.x,y:cb.y-s*b.h/2};k={x:0,y:(p3.y-p0.y)*.5};}
+  if(bend)return {p0,p1:{...bend},p2:{...bend},p3};
+  return {p0,p1:{x:p0.x+k.x,y:p0.y+k.y},p2:{x:p3.x-k.x,y:p3.y-k.y},p3};
+}
+const edgeList=j=>j.edges.map(e=>Array.isArray(e)?{from:e[0],to:e[1]}:e);
+function bendFor(j,from,to){const e=edgeList(j).find(e=>(e.from===from&&e.to===to)||(e.from===to&&e.to===from));return e&&e.bend;}
+const cubic=(t,b)=>{const u=1-t;return{x:u*u*u*b.p0.x+3*u*u*t*b.p1.x+3*u*t*t*b.p2.x+t*t*t*b.p3.x,y:u*u*u*b.p0.y+3*u*u*t*b.p1.y+3*u*t*t*b.p2.y+t*t*t*b.p3.y};};
+const arrowPoly=(b)=>{const ang=Math.atan2(b.p3.y-b.p2.y,b.p3.x-b.p2.x);const L=11,W=6;const tip=b.p3;const bx=tip.x-Math.cos(ang)*L,by=tip.y-Math.sin(ang)*L;const nx=-Math.sin(ang)*W,ny=Math.cos(ang)*W;return `${tip.x},${tip.y} ${bx+nx},${by+ny} ${bx-nx},${by-ny}`;};
+
+/* ---------- state merge ---------- */
+function settle(v){const c={...v};if(c.recs)c.recs=c.recs.map(p=>p.map(r=>({...r,at:0})));if(c.rows)c.rows=c.rows.map(r=>typeof r==='string'?r:{...r,at:0});return c;}
+function cumulative(journey,idx){const s={};for(let i=0;i<=idx;i++){const ss=journey.steps[i].states||{};for(const id in ss)s[id]=i<idx?settle(ss[id]):ss[id];}return s;}
+
+/* ---------- components ---------- */
+function Node({n,st,elRef}){
+  const style={left:n.x,top:n.y,width:n.w,height:n.h,'--c':`var(--${n.color})`,'--c-d':`var(--${n.color}-d)`,'--c-soft':`var(--${n.color}-soft)`};
+  const status=st.status||'ok';
+  let body=null;
+  if(n.kind==='topic'){
+    body=h('div',{className:'parts'},Array.from({length:n.parts},(_,i)=>h('div',{className:'part',key:i},
+      h('span',{className:'part-tag'},'P'+i),
+      h('div',{className:'recs'},...((st.recs&&st.recs[i])||[]).map((r,j)=>h('span',{key:j+':'+r.k+':'+(r.s||''),className:cx('rec',r.s),style:{'--recc':`var(--${r.c||n.color})`,animationDelay:(r.at||0)+'s'}},r.k))))));
+  } else if(n.kind==='db'){
+    body=h('div',{className:'dbrows'},...(st.rows||[]).map((r,i)=>{const o=typeof r==='string'?{t:r}:r;return h('div',{key:i+':'+o.t+':'+(o.s||''),className:cx('dbrow',o.s),style:{animationDelay:(o.at||0)+'s'}},o.t);}));
+  }
+  return h('div',{ref:elRef,className:cx('node','k-'+n.kind,'st-'+status),style,'data-id':n.id},
+    h('div',{className:'node-head'},h('div',{className:'node-ic'},Icon(n.icon||KIND_ICON[n.kind],19)),
+      h('div',null,h('div',{className:'node-title'},n.label),n.sub&&h('div',{className:'node-sub'},n.sub))),
+    body,
+    st.badge&&h('div',{className:'badge',key:'b:'+st.badge},st.badge),
+    st.note&&h('div',{className:'note',key:'n:'+st.note},st.note));
+}
+
+function fly(layer,nodes,m,tl,at,edgeEls,bend){
+  const a=nodes[m.from],b=nodes[m.to];const bz=bezier(a,b,bend);
+  const el=document.createElement('div');el.className='chip';el.style.setProperty('--cc',`var(--${m.color||'blue'})`);
+  el.innerHTML=`<span class="chip-ic">${SVG('envelope',12)}</span><span><span class="chip-l">${esc(m.label)}</span>${m.sub?`<small>${esc(m.sub)}</small>`:''}</span>`;
+  layer.appendChild(el);
+  gsap.set(el,{x:bz.p0.x,y:bz.p0.y,xPercent:-50,yPercent:-50,scale:0,opacity:0});
+  const key=`${m.from}>${m.to}`,rkey=`${m.to}>${m.from}`;
+  const edges=[...(edgeEls[key]||[]),...(edgeEls[rkey]||[])];
+  const color=`var(--${m.color||'blue'})`;
+  const o={t:0};const dur=m.dur||1.1;
+  tl.call(()=>edges.forEach(e=>{e.classList.add('active');e.style.setProperty('--c',color);}),null,at);
+  tl.to(el,{scale:1,opacity:1,duration:.25,ease:'back.out(2.5)'},at);
+  tl.to(o,{t:m.drop?.86:1,duration:dur,ease:m.drop?'power2.out':'power1.inOut',onUpdate(){const q=cubic(o.t,bz);gsap.set(el,{x:q.x,y:q.y});}},at+.15);
+  const end=at+.15+dur;
+  if(m.drop){
+    tl.call(()=>{el.classList.add('dropped');const wrap=el.lastElementChild;let s=wrap.querySelector('small');if(!s){s=document.createElement('small');wrap.appendChild(s);}s.textContent=m.dropLabel||'rejected';el.firstElementChild.innerHTML=SVG('x',12);},null,end);
+    tl.to(el,{x:'+=7',duration:.06,repeat:5,yoyo:true},end);
+    tl.to(el,{opacity:0,scale:.6,duration:.4},end+1.1);
+  } else {
+    tl.to(el,{scale:1.28,duration:.14,yoyo:true,repeat:1,ease:'power1.inOut'},end);
+    tl.to(el,{opacity:0,scale:.5,duration:.3},end+.4);
+  }
+  tl.call(()=>edges.forEach(e=>e.classList.remove('active')),null,end+.5);
+  return end+.75;
+}
+
+function Stage({journey,stepIdx}){
+  const wrapRef=useRef(),stageRef=useRef(),layerRef=useRef();const nodeRefs=useRef({});
+  const [scale,setScale]=useState(1);
+  const step=journey.steps[stepIdx];
+  const st=useMemo(()=>cumulative(journey,stepIdx),[journey,stepIdx]);
+  const nodes=useMemo(()=>Object.fromEntries(journey.nodes.map(n=>[n.id,n])),[journey]);
+  useLayoutEffect(()=>{
+    const col=wrapRef.current.parentElement;
+    const fit=()=>{const w=col.clientWidth;const availH=window.innerHeight-col.getBoundingClientRect().top-window.scrollY-170;setScale(Math.max(.3,Math.min(w/1000,Math.max(availH,340)/520)));};
+    const ro=new ResizeObserver(fit);ro.observe(col);window.addEventListener('resize',fit);fit();
+    return()=>{ro.disconnect();window.removeEventListener('resize',fit);};
+  },[]);
+  useEffect(()=>{
+    const layer=layerRef.current;layer.innerHTML='';
+    const tl=gsap.timeline();if(RM)tl.timeScale(4);
+    const focus=step.focus;
+    journey.nodes.forEach(n=>{const el=nodeRefs.current[n.id];if(!el)return;const f=!focus||focus.includes(n.id);el.classList.toggle('focus',!!focus&&f);gsap.to(el,{opacity:f?1:.32,scale:(focus&&f)?1.045:1,duration:.4,ease:'power2.out',transformOrigin:'50% 50%'});});
+    const edgeEls={};stageRef.current.querySelectorAll('[data-edge]').forEach(e=>{e.classList.remove('active');(edgeEls[e.dataset.edge]=edgeEls[e.dataset.edge]||[]).push(e);});
+    let cursor=.35;
+    (step.messages||[]).forEach(m=>{const at=m.at!=null?m.at:cursor;cursor=fly(layer,nodes,m,tl,at,edgeEls,bendFor(journey,m.from,m.to));});
+    return()=>{tl.kill();layer.innerHTML='';};
+  },[journey,stepIdx]);
+  const edges=useMemo(()=>{
+    const list=edgeList(journey);
+    const keys=new Set(list.map(e=>e.from+'>'+e.to));const seen=new Set();const out=[];
+    list.forEach(e=>{const k=e.from+'>'+e.to,r=e.to+'>'+e.from;if(seen.has(r))return;seen.add(k);out.push({...e,bi:keys.has(r)});});
+    return out;
+  },[journey]);
+  return h('div',{className:'stagecol'},h('div',{ref:wrapRef,className:'stagewrap',style:{width:1000*scale,height:520*scale}},
+    h('div',{ref:stageRef,className:'stage',style:{transform:`scale(${scale})`}},
+      h('svg',{className:'edges',viewBox:'0 0 1000 520'},
+        ...edges.flatMap(e=>{const b=bezier(nodes[e.from],nodes[e.to],e.bend);const d=`M${b.p0.x},${b.p0.y} C${b.p1.x},${b.p1.y} ${b.p2.x},${b.p2.y} ${b.p3.x},${b.p3.y}`;const k=e.from+'>'+e.to;
+          const els=[h('path',{key:k,className:cx('edge',e.dashed&&'dashed'),d,'data-edge':k}),h('polygon',{key:k+'a',className:'arrow',points:arrowPoly(b),'data-edge':k})];
+          if(e.bi){const rb=bezier(nodes[e.to],nodes[e.from],e.bend);els.push(h('polygon',{key:k+'r',className:'arrow',points:arrowPoly(rb),'data-edge':k}));}
+          return els;})),
+      ...journey.nodes.map(n=>h(Node,{key:n.id,n,st:st[n.id]||{},elRef:el=>nodeRefs.current[n.id]=el})),
+      h('div',{ref:layerRef,className:'layer'}))));
+}
+
+function fmtJSON(o){
+  return JSON.stringify(o,null,2).replace(/"([^"]+)":/g,'<span class="pl-k">"$1"</span>:').replace(/: "([^"]*)"/g,': <span class="pl-s">"$1"</span>').replace(/: (-?\d[\d.]*)/g,': <span class="pl-n">$1</span>');
+}
+function Inspector({step,journey}){
+  const ins=step.inspect;
+  return h('aside',{className:'insp',key:journey.id+':'+step.title},
+    h('div',{className:'insp-title'},h('span',{className:'dot'}),ins?'Inspector':'Inspector'),
+    ins?[
+      h('h4',{key:'t'},ins.title),
+      ins.list&&h('div',{key:'l',className:'insp-sec'},h('ul',{className:'legend-list'},...ins.list.map((it,i)=>h('li',{key:i},h('span',{className:'sw',style:{'--c':`var(--${it.c})`}}),h('span',{dangerouslySetInnerHTML:{__html:MD(it.t)}}))))),
+      ins.kv&&h('div',{key:'k',className:'insp-sec'},h('div',{className:'insp-lab'},'Values'),h('div',{className:'kv'},...Object.entries(ins.kv).flatMap(([k,v])=>[h('span',{key:k+'k',className:'k'},k),h('span',{key:k+'v',className:'v'},v)]))),
+      ins.headers&&h('div',{key:'h',className:'insp-sec'},h('div',{className:'insp-lab'},'Headers'),h('div',{className:'hdr'},...Object.entries(ins.headers).map(([k,v])=>h('span',{key:k},k+': ',h('b',null,v))))),
+      ins.payload&&h('div',{key:'p',className:'insp-sec'},h('div',{className:'insp-lab'},'Payload'),h('pre',{className:'payload',dangerouslySetInnerHTML:{__html:fmtJSON(ins.payload)}})),
+      ins.checks&&h('div',{key:'c',className:'insp-sec'},h('ul',{className:'checks'},...ins.checks.map((t,i)=>h('li',{key:i},h('span',{className:'ck'},Icon('check',13,{strokeWidth:3})),h('span',null,t))))),
+      ins.note&&h('div',{key:'n',className:'insp-sec'},h('div',{className:'insp-note'},ins.note)),
+    ]:h('p',{style:{margin:0,color:'var(--muted)',fontSize:14}},'Watch the stage — the message chips carry the key and the interesting header for this step.'));
+}
+
+function Lesson({journey,onExit,onDone}){
+  const [idx,setIdx]=useState(0);
+  const n=journey.steps.length;const step=journey.steps[idx];
+  const next=()=>idx<n-1?setIdx(idx+1):onDone();
+  const prev=()=>idx>0&&setIdx(idx-1);
+  useEffect(()=>{const k=e=>{if(e.key==='ArrowRight'||e.key===' '||e.key==='Enter'){e.preventDefault();next();}else if(e.key==='ArrowLeft')prev();else if(e.key==='Escape')onExit();};window.addEventListener('keydown',k);return()=>window.removeEventListener('keydown',k);},[idx,n]);
+  const colorVars={'--c':`var(--${journey.color})`,'--c-d':`var(--${journey.color}-d)`,'--c-soft':`var(--${journey.color}-soft)`};
+  return h('div',{className:'lesson',style:colorVars},
+    h('div',{className:'lhead'},
+      h('button',{className:'btn ghost icon',onClick:onExit,'aria-label':'Back to journeys'},Icon('x',20,{strokeWidth:3})),
+      h('div',{className:'prog'},h('i',{style:{width:`${((idx+1)/n)*100}%`}})),
+      h('div',{className:'stepchip'},`${idx+1} / ${n}`)),
+    h('div',{className:'lbody'},h(Stage,{journey,stepIdx:idx}),h(Inspector,{step,journey})),
+    h('div',{className:'lfoot'},h('div',{className:'lfoot-in'},
+      h('div',{className:'caption',key:idx},
+        h('div',{className:'eyebrow'},h('i'),journey.title,' · step ',idx+1),
+        h('h2',null,step.title),
+        h('p',{dangerouslySetInnerHTML:{__html:MD(step.text)}})),
+      h('div',{className:'ctl'},
+        h('button',{className:'btn ghost',onClick:prev,disabled:idx===0},Icon('left',18,{strokeWidth:3}),'Back'),
+        h('button',{className:'btn',onClick:next},idx===n-1?'Finish':'Next',idx===n-1?Icon('crown',18):null)))));
+}
+
+function confetti(canvas){
+  const ctx=canvas.getContext('2d');const dpr=window.devicePixelRatio||1;
+  const W=canvas.clientWidth,H=canvas.clientHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.scale(dpr,dpr);
+  const colors=['#58cc02','#1cb0f6','#ff9600','#ff4b4b','#ce82ff','#ffc800'];
+  const ps=Array.from({length:RM?0:180},()=>({x:W/2+(Math.random()-.5)*160,y:H*.45,vx:(Math.random()-.5)*14,vy:-Math.random()*16-6,g:.35,w:6+Math.random()*8,h:4+Math.random()*6,r:Math.random()*Math.PI,vr:(Math.random()-.5)*.3,c:colors[Math.floor(Math.random()*colors.length)],life:1}));
+  let t0=performance.now(),raf;
+  const tick=now=>{const dt=Math.min((now-t0)/16.7,2);t0=now;ctx.clearRect(0,0,W,H);let alive=false;
+    ps.forEach(p=>{p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.99;p.r+=p.vr*dt;if(p.y>H*.6)p.life-=.012*dt;if(p.life<=0)return;alive=true;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.c;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();});
+    if(alive)raf=requestAnimationFrame(tick);};
+  raf=requestAnimationFrame(tick);return()=>cancelAnimationFrame(raf);
+}
+function Done({journey,onHome,onReplay}){
+  const ref=useRef();useEffect(()=>confetti(ref.current),[]);
+  const xp=journey.steps.length*10;
+  return h('div',{className:'done'},h('canvas',{ref:ref}),
+    h('div',{className:'done-card'},
+      h('div',{className:'trophy'},Icon('crown',64,{strokeWidth:2})),
+      h('h1',null,'Journey complete!'),
+      h('p',null,'You walked through ',h('b',null,journey.title),' end to end.'),
+      h('div',{className:'tiles'},
+        h('div',{className:'tile',style:{'--c':'var(--yellow)','--c-d':'var(--yellow-d)'}},h('div',{className:'tl'},'TOTAL XP'),h('div',{className:'tv'},Icon('bolt',20),xp)),
+        h('div',{className:'tile',style:{'--c':'var(--blue)','--c-d':'var(--blue-d)'}},h('div',{className:'tl'},'STEPS'),h('div',{className:'tv'},journey.steps.length))),
+      h('div',{className:'ctl'},h('button',{className:'btn ghost',onClick:onReplay},Icon('refresh',18,{strokeWidth:3}),'Replay'),h('button',{className:'btn',onClick:onHome},'Continue'))));
+}
+
+function Home({completed,onStart}){
+  const xp=JOURNEYS.filter(j=>completed.has(j.id)).reduce((a,j)=>a+j.steps.length*10,0);
+  return h('div',{className:'home'},
+    h('div',{className:'topbar'},
+      h('div',{className:'brand'},h('span',{className:'brand-mark'},Icon('bolt',22,{strokeWidth:2.6})),'Kafka Journey'),
+      h('div',{className:'stats'},h('div',{className:'stat crown'},Icon('crown',18),`${completed.size} / ${JOURNEYS.length}`),h('div',{className:'stat xp'},Icon('bolt',18),`${xp} XP`))),
+    h('div',{className:'hero'},h('h1',null,'Pick a journey'),h('p',null,'Each one is a short, animated walk through a real Kafka scenario. Step through with Next, watch the records move, and inspect the headers and payloads as they fly.')),
+    h('div',{className:'grid'},...JOURNEYS.map(j=>h('button',{key:j.id,className:'jcard',onClick:()=>onStart(j),style:{'--c':`var(--${j.color})`,'--c-d':`var(--${j.color}-d)`,'--c-soft':`var(--${j.color}-soft)`}},
+      h('div',{className:'jcard-band'},h('span',{className:'ring',style:{width:170,height:170,left:-50,top:-70}}),h('span',{className:'ring',style:{width:120,height:120,right:-30,bottom:-60}}),h('span',{className:'big'},Icon(j.icon,32,{strokeWidth:2.4}))),
+      completed.has(j.id)&&h('span',{className:'done-pill'},Icon('crown',13,{strokeWidth:3}),'DONE'),
+      h('div',{className:'jcard-body'},h('h3',null,j.title),h('p',null,j.blurb),
+        h('div',{className:'jcard-meta'},h('span',null,`${j.steps.length} steps · ${j.minutes} min`),h('span',{className:'jcard-cta'},completed.has(j.id)?'Replay':'Start',Icon('play',12,{strokeWidth:3}))))))),
+    h('div',{className:'legend'},
+      h('span',{className:'k'},Icon('envelope',16),'chip = a record or request in flight'),
+      h('span',{className:'k',style:{color:'var(--red-d)'}},Icon('x',16,{strokeWidth:3}),'red chip = dropped / rejected'),
+      h('span',{className:'k'},'keys: → next · ← back · esc exit')));
+}
+
+function App(){
+  const [screen,setScreen]=useState('home');const [journey,setJourney]=useState(null);
+  const [completed,setCompleted]=useState(()=>{try{return new Set(JSON.parse(localStorage.getItem('kj-done')||'[]'));}catch(e){return new Set();}});
+  const [runKey,setRunKey]=useState(0);
+  const start=j=>{setJourney(j);setRunKey(k=>k+1);setScreen('lesson');window.scrollTo(0,0);};
+  const done=()=>{const s=new Set(completed);s.add(journey.id);setCompleted(s);try{localStorage.setItem('kj-done',JSON.stringify([...s]));}catch(e){}setScreen('done');};
+  if(screen==='lesson')return h(Lesson,{key:runKey,journey,onExit:()=>setScreen('home'),onDone:done});
+  if(screen==='done')return h(Done,{journey,onHome:()=>setScreen('home'),onReplay:()=>start(journey)});
+  return h(Home,{completed,onStart:start});
+}
+ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+</script>
