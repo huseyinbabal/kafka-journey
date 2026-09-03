@@ -77,7 +77,7 @@ svg{display:block}
 .legend .k{display:inline-flex;align-items:center;gap:6px;font-weight:800}
 
 /* ---------- lesson ---------- */
-.lesson{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.lesson{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
 .lhead{flex:none;display:flex;align-items:center;gap:18px;padding:18px 24px 10px;width:100%;max-width:1400px;margin:0 auto}
 .prog{flex:1;height:16px;background:var(--border);border-radius:8px;overflow:hidden}
 .prog i{display:block;height:100%;background:var(--green);border-radius:8px;position:relative;transition:width .45s cubic-bezier(.22,1,.36,1)}
@@ -183,7 +183,7 @@ pre.payload{margin:0;padding:10px 12px;border-radius:12px;background:var(--code-
 @media (max-width:700px){.lfoot-in{flex-direction:column;align-items:stretch}.ctl{justify-content:flex-end}}
 
 /* done */
-.done{min-height:100vh;display:grid;place-items:center;position:relative;overflow:hidden;padding:24px}
+.done{min-height:100vh;min-height:100dvh;display:grid;place-items:center;position:relative;overflow:hidden;padding:24px}
 .done canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .done-card{position:relative;text-align:center;max-width:520px;display:flex;flex-direction:column;align-items:center;gap:18px;animation:rise .5s cubic-bezier(.22,1,.36,1) backwards}
 .trophy{width:120px;height:120px;border-radius:36px;background:var(--yellow);color:#5b4300;display:grid;place-items:center;box-shadow:0 8px 0 var(--yellow-d);animation:bounce 1.2s cubic-bezier(.34,1.56,.64,1)}
